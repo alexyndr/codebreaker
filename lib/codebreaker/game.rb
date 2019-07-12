@@ -50,7 +50,7 @@ module Codebreaker
     end
 
     def choose_difficulty(input)
-      case input.downcase
+      case input
       when 'easy'
         self.hints = 2
         self.atempts = 15

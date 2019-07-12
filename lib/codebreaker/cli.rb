@@ -4,12 +4,13 @@ module Codebreaker
   # Receive incoming data through the console
   # Comunication with the user using Internationalization
   class Cli
-    attr_accessor :code
+    attr_accessor :code, :exit_game
     attr_reader :game
 
     def initialize(game = Game.new)
       @game = game
       @code = ''
+      @exit_game = false
     end
 
     def run
@@ -29,13 +30,18 @@ module Codebreaker
       when 'start' then start_game
       when 'rules' then rules
       when 'stats' then statistick
-      when 'exit' then end_game
+      when 'exit' then goodbuy
       when 'hint' then show_hint
       when /^[1-6]{4}$/ then result(input)
       else
         puts input.match(/^[0-9]+$/) ? I18n.t(:wrong_input_code) : I18n.t(:wrong_input_option)
         console_comands_checker(input_user)
       end
+    end
+
+    def goodbuy
+      @exit_game = true
+      puts I18n.t(:goodbye)
     end
 
     def rules
@@ -47,10 +53,7 @@ module Codebreaker
     def start_game
       if game.user.nil?
         set_name
-        while game.hints.nil?
-          puts I18n.t(:wrong_input_option)
-          set_choose_difficulty
-        end
+        set_choose_difficulty while game.hints.nil?
         !game.atempts.nil? ? atempts_counter : false
         you_lose
       else
@@ -59,7 +62,7 @@ module Codebreaker
     end
 
     def atempts_counter
-      while game.atempts.positive? && check_result == false
+      while game.atempts.positive? && check_result == false && @exit_game == false
         puts I18n.t(:message_guess_code)
         console_comands_checker(input_user)
         check_result unless code.nil?
@@ -80,24 +83,19 @@ module Codebreaker
 
     def set_choose_difficulty
       puts I18n.t(:choose_difficulty)
-      game.choose_difficulty(input_user)
+      if game.choose_difficulty(input_user) == false
+        puts I18n.t(:wrong_input_option)
+      end
+      #return puts I18n.t(:wrong_input_option) if game.choose_difficulty(input_user) == false
     end
 
     def result(input)
       @code = game.compare_code(input)
-      show_result
-    end
-
-    def show_result
       puts game.user.nil? ? false : code
     end
 
     def show_hint
       puts game.user.nil? ? console_comands_checker('input_user') : game.hint
-    end
-
-    def end_game
-      abort I18n.t(:goodbye)
     end
 
     def restart
@@ -106,7 +104,7 @@ module Codebreaker
         initialize
         start_game
       else
-        abort I18n.t(:goodbye)
+        goodbuy
       end
     end
 
@@ -124,7 +122,6 @@ module Codebreaker
     end
 
     def statistick
-      #return puts I18n.t(:clear_stats) if game.stat.empty?
       if game.stat.empty?
         puts I18n.t(:clear_stats)
         puts I18n.t(:choose_option)
